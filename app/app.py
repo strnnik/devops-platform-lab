@@ -1,6 +1,7 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import sys
+import os
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -22,8 +23,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(data).encode('utf-8'))
 
-def run(port=8000):
-    server_address = ('127.0.0.1', port)
+def run(
+    host=os.getenv("APP_HOST", "127.0.0.1"),
+    port=int(os.getenv("APP_PORT", "8000")),
+):
+    server_address = (host, port)
     httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
     print(f"Сервер запущен на порту {port}...", flush=True)
     try:

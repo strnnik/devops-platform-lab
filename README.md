@@ -92,3 +92,17 @@ See [runbook.md](docs/runbook.md) for service operations and `502 Bad Gateway` t
 - Add CI/CD
 - Add monitoring, logging, and alerting
 - Deploy the application to Kubernetes
+
+## Run with Docker
+
+Build the image:
+
+    docker build -t devops-platform-app:local -f app/Dockerfile app
+
+Run the container:
+
+    docker run --rm --name devops-platform-app -p 8080:8000 devops-platform-app:local
+
+Verify the health endpoint:
+
+    curl -i http://127.0.0.1:8080/health
