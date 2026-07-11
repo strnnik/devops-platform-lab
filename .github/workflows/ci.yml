@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Check Python syntax
+        run: python -m py_compile app/app.py
+
+      - name: Start Compose Stack
+        run: docker compose up -d
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..10}; do
+            status=$(curl \
+              --silent \
+              --show-error \
+              --max-time 2 \
+              --output /dev/null \
+              --write-out "%{http_code}" \
+              http://localhost:8080/health || true)
+
+            if [ "$status" = "200" ]; then
+              echo "Health check passed on attempt $attempt"
+              exit 0
+            fi
+
+            echo "Attempt $attempt failed: HTTP $status"
+            sleep 2
+          done
+
+          echo "Service did not become healthy"
+          exit 1
+          
+      - name: Print diagnostics on failure
+        if: ${{ failure() }}
+        run: |
+          docker compose ps || true
+          docker compose logs app || true
+          docker compose logs nginx || true
+
+      - name: Clean up Compose stack
+        if: ${{ always() }}
+        run: docker compose down -v
