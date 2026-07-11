@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    environment:
+      APP_HOST: 0.0.0.0
+    expose:
+      - "8000"
+
+  nginx:
+    image: nginx:1.31.2-alpine3.23
+    depends_on:
+      - app
+    ports:
+      - "8080:80"   # проброс портов - порт_на_VM:порт_в_контейнере
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro # ro - read only внутри контейнера

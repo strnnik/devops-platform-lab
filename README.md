@@ -93,16 +93,63 @@ See [runbook.md](docs/runbook.md) for service operations and `502 Bad Gateway` t
 - Add monitoring, logging, and alerting
 - Deploy the application to Kubernetes
 
-## Run with Docker
+## Run with Docker Compose
 
-Build the image:
+The Compose stack contains two containers:
 
-    docker build -t devops-platform-app:local -f app/Dockerfile app
+    Client -> Nginx container :80 -> app container :8000
 
-Run the container:
+Only Nginx is published on the host:
 
-    docker run --rm --name devops-platform-app -p 8080:8000 devops-platform-app:local
+    Host port 8080 -> Nginx container port 80
 
-Verify the health endpoint:
+The application port is available only inside the Docker Compose network.
+
+### Start the stack
+
+    docker compose up --build -d
+
+### Verify the application
 
     curl -i http://127.0.0.1:8080/health
+    docker compose ps
+
+Expected response:
+
+    HTTP/1.1 200 OK
+    {"status": "ok"}
+
+### View logs
+
+View logs from all services:
+
+    docker compose logs
+
+Follow logs in real time:
+
+    docker compose logs -f
+
+View logs from one service:
+
+    docker compose logs app
+    docker compose logs nginx
+
+### Diagnose 502 Bad Gateway
+
+A 502 response means that Nginx cannot reach the application upstream.
+
+    docker compose ps
+    docker compose logs --tail=50 nginx
+    docker compose logs --tail=50 app
+
+Check the Nginx upstream configuration:
+
+    proxy_pass http://app:8000;
+
+Restart the application service if needed:
+
+    docker compose restart app
+
+### Stop the stack
+
+    docker compose down
