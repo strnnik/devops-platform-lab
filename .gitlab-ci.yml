@@ -1,0 +1,52 @@
+stages:
+  - lint
+  - integration
+
+python_syntax:
+  stage: lint
+  image: python:3.14-slim
+  script:
+    - python -m py_compile app/app.py
+
+compose_smoke_test:
+  stage: integration
+  image: docker:27-cli
+  services:
+    - name: docker:27-dind
+      alias: docker
+  needs:
+    - python_syntax
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - apk add --no-cache curl
+    - docker info
+    - docker compose version
+  script:
+    - docker compose build
+    - docker compose up -d
+    - |
+      set -eu
+
+      for attempt in $(seq 1 10); do
+        status="$(curl --silent --show-error --max-time 2 \
+          --output /dev/null --write-out '%{http_code}' \
+          http://localhost:8080/health || true)"
+
+        if [ "$status" = "200" ]; then
+          echo "Health check passed on attempt $attempt"
+          exit 0
+        fi
+
+        echo "Attempt $attempt failed: HTTP $status"
+        sleep 2
+      done
+
+      echo "Service did not become healthy"
+      exit 1
+  after_script:
+    - docker compose ps || true
+    - docker compose logs || true
+    - docker compose down -v || true
