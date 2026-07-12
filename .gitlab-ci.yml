@@ -33,7 +33,7 @@ compose_smoke_test:
       for attempt in $(seq 1 10); do
         status="$(curl --silent --show-error --max-time 2 \
           --output /dev/null --write-out '%{http_code}' \
-          http://localhost:8080/health || true)"
+          http://docker:8080/health || true)"
 
         if [ "$status" = "200" ]; then
           echo "Health check passed on attempt $attempt"
